@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { tokens } from '@canva/app-ui-kit';
+import React, { useRef, useState, useEffect } from "react";
+import { tokens } from "@canva/app-ui-kit";
 
 interface Point {
   x: number;
@@ -69,7 +69,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -87,7 +87,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
   return (
     <canvas
       ref={canvasRef}
-      style={{ borderRadius: '3px', border: '1px solid', borderColor: tokens.colorBorder }}
+      style={{
+        borderRadius: "3px",
+        border: "1px solid",
+        borderColor: tokens.colorBorder,
+      }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
