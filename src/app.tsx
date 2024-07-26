@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import DrawingCanvas from './component/DrawingCanvas';
 import ControlPoints from './component/ControlPoints';
 import { Rows, Button, Text } from '@canva/app-ui-kit';
+// import { Rows, Button, Text } from '@canva/app-ui-kit';
 
 interface Point {
   x: number;
