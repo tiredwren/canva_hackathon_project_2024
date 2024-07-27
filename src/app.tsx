@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DrawingCanvas from "./components/DrawingCanvas";
 import {
-  Rows,
   Button,
   Text,
   TextInput,
@@ -23,7 +22,7 @@ const App: React.FC = () => {
   const [scaledPath, setScaledPath] = useState<Point[]>([]);
   const [viewBox, setViewBox] = useState<string>("0 0 500 300");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
-  const [fontSize, setFontSize] = useState<number>(20);
+  const [fontSize, setFontSize] = useState<number>(40);
   const [fontColor, setFontColor] = useState<string>("#000000");
   const [fontFamily, setFontFamily] = useState<string>("Arial");
 
