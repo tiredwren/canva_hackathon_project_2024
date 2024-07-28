@@ -121,7 +121,6 @@ const App: React.FC = () => {
     return lines;
   };
 
-
   useEffect(() => {
     const pathLength = calculatePathLength(shapePath);
     const scaled = scalePath(shapePath, 1);
@@ -228,7 +227,6 @@ const App: React.FC = () => {
                   fontSize={fontSize}
                   fontFamily={fontFamily}
                   letterSpacing={letterSpacing}
-                  dy={`${index * fontSize}px`}
                 >
                   <textPath href="#userPath" spacing="auto" startOffset="0%">
                     {line}
