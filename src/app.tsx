@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DrawingCanvas from "./components/DrawingCanvas";
 import {
+  Rows,
   Button,
   Text,
   TextInput,
@@ -22,7 +23,7 @@ const App: React.FC = () => {
   const [scaledPath, setScaledPath] = useState<Point[]>([]);
   const [viewBox, setViewBox] = useState<string>("0 0 500 300");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
-  const [fontSize, setFontSize] = useState<number>(40);
+  const [fontSize, setFontSize] = useState<number>(20);
   const [fontColor, setFontColor] = useState<string>("#000000");
   const [fontFamily, setFontFamily] = useState<string>("Arial");
 
@@ -103,14 +104,15 @@ const App: React.FC = () => {
 
     let d = `M ${scaledPath[0].x},${scaledPath[0].y}`;
     for (let i = 0; i < scaledPath.length - 1; i++) {
-      const p0 = scaledPath[i > 0 ? i - 1 : i];
-      const p1 = scaledPath[i];
-      const p2 = scaledPath[i + 1];
-      const p3 = scaledPath[i + 2 < scaledPath.length ? i + 2 : i + 1];
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      const p0 = scaledPath[i > 0 ? i - 1 : i];     // previous point
+      const p1 = scaledPath[i];     // current point
+      const p2 = scaledPath[i + 1];     // next point
+      const p3 = scaledPath[i + 2 < scaledPath.length ? i + 2 : i + 1];     // two points after current
+
+      const cp1x = p1.x + (p2.x - p0.x) / 3;
+      const cp1y = p1.y + (p2.y - p0.y) / 3;
+      const cp2x = p2.x - (p3.x - p1.x) / 3;
+      const cp2y = p2.y - (p3.y - p1.y) / 3;
       d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
     }
     return d;
