@@ -97,28 +97,22 @@ const App: React.FC = () => {
     return metrics.width;
   };
 
-  const splitTextIntoLines = (
+  const adjustFontSizeToFitPath = (
     text: string,
     pathLength: number,
-    fontSize: number,
-    fontFamily: string
-  ): string[] => {
-    const words = text.split(" ");
-    let lines: string[] = [];
-    let currentLine: string = words[0];
+    initialFontSize: number,
+    fontFamily: string,
+    letterSpacing: number
+  ) => {
+    let adjustedFontSize = initialFontSize;
+    let textWidth = measureTextWidth(text, adjustedFontSize, fontFamily);
 
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = measureTextWidth(currentLine + " " + word, fontSize, fontFamily);
-      if (width < pathLength) {
-        currentLine += " " + word;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
-      }
+    while (textWidth + (text.length - 1) * letterSpacing > pathLength && adjustedFontSize > 1) {
+      adjustedFontSize -= 1;
+      textWidth = measureTextWidth(text, adjustedFontSize, fontFamily);
     }
-    lines.push(currentLine);
-    return lines;
+
+    return adjustedFontSize;
   };
 
   useEffect(() => {
@@ -130,7 +124,7 @@ const App: React.FC = () => {
     const width = maxX - minX;
     const height = maxY - minY;
     setViewBox(`${minX - 20} ${minY - 20} ${width + 40} ${height + 50}`);
-  }, [text, shapePath, fontSize, fontFamily]);
+  }, [shapePath]);
 
   const generatePathD = () => {
     if (scaledPath.length < 2) return "";
@@ -156,6 +150,9 @@ const App: React.FC = () => {
     { label: "Times New Roman", value: "Times New Roman" },
     // Add more fonts as needed
   ];
+
+  const pathLength = calculatePathLength(scaledPath);
+  const adjustedFontSize = adjustFontSizeToFitPath(text, pathLength, fontSize, fontFamily, letterSpacing);
 
   return (
     <Box width="full" paddingEnd="2u">
@@ -221,18 +218,15 @@ const App: React.FC = () => {
               <path id="userPath" d={generatePathD()} />
             </defs>
             <g fill={fontColor}>
-              {splitTextIntoLines(text, calculatePathLength(scaledPath), fontSize, fontFamily).map((line, index) => (
-                <text
-                  key={index}
-                  fontSize={fontSize}
-                  fontFamily={fontFamily}
-                  letterSpacing={letterSpacing}
-                >
-                  <textPath href="#userPath" spacing="auto" startOffset="0%">
-                    {line}
-                  </textPath>
-                </text>
-              ))}
+              <text
+                fontSize={adjustedFontSize}
+                fontFamily={fontFamily}
+                letterSpacing={letterSpacing}
+              >
+                <textPath href="#userPath" spacing="auto" startOffset="0%">
+                  {text}
+                </textPath>
+              </text>
               <use x="0" y="0" href="#userPath" stroke="none" fill="none" />
             </g>
           </svg>
