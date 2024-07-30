@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import DrawingCanvas from "./components/DrawingCanvas";
 import {
-  Rows,
   Button,
   Text,
   TextInput,
@@ -20,12 +19,12 @@ interface Point {
 const App: React.FC = () => {
   const [shapePath, setShapePath] = useState<Point[]>([]);
   const [text, setText] = useState<string>("");
+  const [scaledPath, setScaledPath] = useState<Point[]>([]);
   const [viewBox, setViewBox] = useState<string>("0 0 500 300");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [fontSize, setFontSize] = useState<number>(20);
   const [fontColor, setFontColor] = useState<string>("#000000");
   const [fontFamily, setFontFamily] = useState<string>("Arial");
-  const [textMode, setTextMode] = useState<string>("follow"); // New state for mode
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -51,6 +50,23 @@ const App: React.FC = () => {
 
   const handleLetterSpacingChange = (value: number) => {
     setLetterSpacing(value);
+  };
+
+  const calculatePathLength = (points: Point[]) => {
+    let length = 0;
+    for (let i = 1; i < points.length; i++) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      length += Math.sqrt(dx * dx + dy * dy);
+    }
+    return length;
+  };
+
+  const scalePath = (points: Point[], scale: number) => {
+    return points.map((point) => ({
+      x: point.x * scale,
+      y: point.y * scale,
+    }));
   };
 
   const calculateBoundingBox = (points: Point[]) => {
@@ -100,7 +116,11 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const { minX, minY, maxX, maxY } = calculateBoundingBox(shapePath);
+    const pathLength = calculatePathLength(shapePath);
+    const scaled = scalePath(shapePath, 1);
+    setScaledPath(scaled);
+
+    const { minX, minY, maxX, maxY } = calculateBoundingBox(scaled);
     const width = maxX - minX;
     const height = maxY - minY;
     setViewBox(`${minX - 20} ${minY - 20} ${width + 40} ${height + 50}`);
@@ -142,7 +162,7 @@ const App: React.FC = () => {
           <TextInput
             value={text}
             onChange={handleTextChange}
-            placeholder="Enter text"
+            placeholder="Enter text to display on path"
           />
         </div>
         <br />
@@ -155,6 +175,7 @@ const App: React.FC = () => {
           />
         </div>
         <br />
+
         <div className="component">
           <Text variant="bold">Font Size</Text>
           <Slider
@@ -180,18 +201,6 @@ const App: React.FC = () => {
         <div className="component">
           <Text variant="bold">Text Color</Text>
           <ColorSelector color={fontColor} onChange={handleFontColorChange} />
-        </div>
-        <br />
-        <div className="component">
-          <Text variant="bold">Text Mode</Text>
-          <Select
-            stretch
-            options={[
-              { label: "Follow Path", value: "follow" },
-              { label: "Fill Shape", value: "fill" },
-            ]}
-            onChange={(value) => setTextMode(value)}
-          />
         </div>
         <br />
         <div className="component">
