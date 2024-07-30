@@ -20,12 +20,12 @@ interface Point {
 const App: React.FC = () => {
   const [shapePath, setShapePath] = useState<Point[]>([]);
   const [text, setText] = useState<string>("");
-  const [scaledPath, setScaledPath] = useState<Point[]>([]);
   const [viewBox, setViewBox] = useState<string>("0 0 500 300");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [fontSize, setFontSize] = useState<number>(20);
   const [fontColor, setFontColor] = useState<string>("#000000");
   const [fontFamily, setFontFamily] = useState<string>("Arial");
+  const [textMode, setTextMode] = useState<string>("follow"); // New state for mode
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -51,23 +51,6 @@ const App: React.FC = () => {
 
   const handleLetterSpacingChange = (value: number) => {
     setLetterSpacing(value);
-  };
-
-  const calculatePathLength = (points: Point[]) => {
-    let length = 0;
-    for (let i = 1; i < points.length; i++) {
-      const dx = points[i].x - points[i - 1].x;
-      const dy = points[i].y - points[i - 1].y;
-      length += Math.sqrt(dx * dx + dy * dy);
-    }
-    return length;
-  };
-
-  const scalePath = (points: Point[], scale: number) => {
-    return points.map((point) => ({
-      x: point.x * scale,
-      y: point.y * scale,
-    }));
   };
 
   const calculateBoundingBox = (points: Point[]) => {
@@ -98,50 +81,15 @@ const App: React.FC = () => {
     return metrics.width;
   };
 
-  const splitTextIntoLines = (
-    text: string,
-    pathLength: number,
-    fontSize: number,
-    fontFamily: string
-  ): string[] => {
-    const words = text.split(" ");
-    let lines: string[] = [];
-    let currentLine: string = words[0];
-
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = measureTextWidth(currentLine + " " + word, fontSize, fontFamily);
-      if (width < pathLength) {
-        currentLine += " " + word;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
-      }
-    }
-    lines.push(currentLine);
-    return lines;
-  };
-
-  useEffect(() => {
-    const pathLength = calculatePathLength(shapePath);
-    const scaled = scalePath(shapePath, 1);
-    setScaledPath(scaled);
-
-    const { minX, minY, maxX, maxY } = calculateBoundingBox(scaled);
-    const width = maxX - minX;
-    const height = maxY - minY;
-    setViewBox(`${minX - 20} ${minY - 20} ${width + 40} ${height + 50}`);
-  }, [text, shapePath, fontSize, fontFamily]);
-
   const generatePathD = () => {
-    if (scaledPath.length < 2) return "";
+    if (shapePath.length < 2) return "";
 
-    let d = `M ${scaledPath[0].x},${scaledPath[0].y}`;
-    for (let i = 0; i < scaledPath.length - 1; i++) {
-      const p0 = scaledPath[i > 0 ? i - 1 : i];     // previous point
-      const p1 = scaledPath[i];     // current point
-      const p2 = scaledPath[i + 1];     // next point
-      const p3 = scaledPath[i + 2 < scaledPath.length ? i + 2 : i + 1];     // two points after current
+    let d = `M ${shapePath[0].x},${shapePath[0].y}`;
+    for (let i = 0; i < shapePath.length - 1; i++) {
+      const p0 = shapePath[i > 0 ? i - 1 : i];     // previous point
+      const p1 = shapePath[i];     // current point
+      const p2 = shapePath[i + 1];     // next point
+      const p3 = shapePath[i + 2 < shapePath.length ? i + 2 : i + 1];     // two points after current
 
       const cp1x = p1.x + (p2.x - p0.x) / 3;
       const cp1y = p1.y + (p2.y - p0.y) / 3;
@@ -151,6 +99,13 @@ const App: React.FC = () => {
     }
     return d;
   };
+
+  useEffect(() => {
+    const { minX, minY, maxX, maxY } = calculateBoundingBox(shapePath);
+    const width = maxX - minX;
+    const height = maxY - minY;
+    setViewBox(`${minX - 20} ${minY - 20} ${width + 40} ${height + 50}`);
+  }, [shapePath]);
 
   const fontOptions = [
     { label: "Arial", value: "Arial" },
@@ -167,7 +122,7 @@ const App: React.FC = () => {
           <TextInput
             value={text}
             onChange={handleTextChange}
-            placeholder="Enter text to display on path"
+            placeholder="Enter text"
           />
         </div>
         <br />
@@ -180,7 +135,6 @@ const App: React.FC = () => {
           />
         </div>
         <br />
-
         <div className="component">
           <Text variant="bold">Font Size</Text>
           <Slider
@@ -209,6 +163,18 @@ const App: React.FC = () => {
         </div>
         <br />
         <div className="component">
+          <Text variant="bold">Text Mode</Text>
+          <Select
+            stretch
+            options={[
+              { label: "Follow Path", value: "follow" },
+              { label: "Fill Shape", value: "fill" },
+            ]}
+            onChange={(value) => setTextMode(value)}
+          />
+        </div>
+        <br />
+        <div className="component">
           <Text variant="regular">Draw your desired text path below.</Text>
           <DrawingCanvas onShapeComplete={handleShapeComplete} />
         </div>
@@ -219,24 +185,49 @@ const App: React.FC = () => {
             version="1.1"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <defs>
-              <path id="userPath" d={generatePathD()} />
-            </defs>
-            <g fill={fontColor}>
-              {splitTextIntoLines(text, calculatePathLength(scaledPath), fontSize, fontFamily).map((line, index) => (
-                <text
-                  key={index}
-                  fontSize={fontSize}
-                  fontFamily={fontFamily}
-                  letterSpacing={letterSpacing}
-                >
-                  <textPath href="#userPath" spacing="auto" startOffset="0%">
-                    {line}
-                  </textPath>
-                </text>
-              ))}
-              <use x="0" y="0" href="#userPath" stroke="none" fill="none" />
-            </g>
+            {textMode === "follow" && (
+              <>
+                <defs>
+                  <path id="userPath" d={generatePathD()} />
+                </defs>
+                <g fill={fontColor}>
+                  {text.split("").map((char, index) => (
+                    <text
+                      key={index}
+                      fontSize={fontSize}
+                      fontFamily={fontFamily}
+                      letterSpacing={letterSpacing}
+                    >
+                      <textPath href="#userPath" startOffset={`${index * 20}`}>
+                        {char}
+                      </textPath>
+                    </text>
+                  ))}
+                </g>
+              </>
+            )}
+            {textMode === "fill" && (
+              <>
+                <defs>
+                  <clipPath id="clip-shape">
+                    <path d={generatePathD()} />
+                  </clipPath>
+                </defs>
+                <g clipPath="url(#clip-shape)" fill={fontColor}>
+                  {Array.from({ length: 100 }, (_, row) => (
+                    <text
+                      key={row}
+                      fontSize={fontSize}
+                      fontFamily={fontFamily}
+                      letterSpacing={letterSpacing}
+                      y={row * fontSize * 1.2} // Adjust spacing factor as needed
+                    >
+                      {text.repeat(10)}
+                    </text>
+                  ))}
+                </g>
+              </>
+            )}
           </svg>
         )}
         <div className="component">
