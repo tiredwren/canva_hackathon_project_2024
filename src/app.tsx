@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DrawingCanvas from "./components/DrawingCanvas";
 import {
   Button,
@@ -22,9 +22,11 @@ const App: React.FC = () => {
   const [scaledPath, setScaledPath] = useState<Point[]>([]);
   const [viewBox, setViewBox] = useState<string>("0 0 500 300");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
-  const [fontSize, setFontSize] = useState<number>(40);
+  const [fontSize, setFontSize] = useState<number>(20);
   const [fontColor, setFontColor] = useState<string>("#000000");
   const [fontFamily, setFontFamily] = useState<string>("Arial");
+
+  const textCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleShapeComplete = (path: Point[]) => {
     setShapePath(path);
@@ -85,18 +87,44 @@ const App: React.FC = () => {
     return { minX, minY, maxX, maxY };
   };
 
+  const measureTextWidth = (text: string, fontSize: number, fontFamily: string) => {
+    const canvas = textCanvasRef.current;
+    if (!canvas) return 0;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return 0;
+    ctx.font = `${fontSize}px ${fontFamily}`;
+    const metrics = ctx.measureText(text);
+    return metrics.width;
+  };
+
+  const adjustFontSizeToFitPath = (
+    text: string,
+    pathLength: number,
+    initialFontSize: number,
+    fontFamily: string,
+    letterSpacing: number
+  ) => {
+    let adjustedFontSize = initialFontSize;
+    let textWidth = measureTextWidth(text, adjustedFontSize, fontFamily);
+
+    while (textWidth + (text.length - 1) * letterSpacing > pathLength && adjustedFontSize > 1) {
+      adjustedFontSize -= 1;
+      textWidth = measureTextWidth(text, adjustedFontSize, fontFamily);
+    }
+
+    return adjustedFontSize;
+  };
+
   useEffect(() => {
     const pathLength = calculatePathLength(shapePath);
-    const textLength = text.length * 10; // Approximate text length, adjust factor as needed
-    const scale = textLength > pathLength ? textLength / pathLength : 1;
-    const scaled = scalePath(shapePath, scale);
+    const scaled = scalePath(shapePath, 1);
     setScaledPath(scaled);
 
     const { minX, minY, maxX, maxY } = calculateBoundingBox(scaled);
     const width = maxX - minX;
     const height = maxY - minY;
-    setViewBox(`${minX - 20} ${minY - 20} ${width + 30} ${height + 30}`);
-  }, [text, shapePath]);
+    setViewBox(`${minX - 20} ${minY - 20} ${width + 40} ${height + 50}`);
+  }, [shapePath]);
 
   const generatePathD = () => {
     if (scaledPath.length < 2) return "";
@@ -123,14 +151,12 @@ const App: React.FC = () => {
     // Add more fonts as needed
   ];
 
+  const pathLength = calculatePathLength(scaledPath);
+  const adjustedFontSize = adjustFontSizeToFitPath(text, pathLength, fontSize, fontFamily, letterSpacing);
+
   return (
     <Box width="full" paddingEnd="2u">
       <div className="container">
-        <div className="component">
-          <Text variant="regular">Draw your desired text path below.</Text>
-          <DrawingCanvas onShapeComplete={handleShapeComplete} />
-        </div>
-        <br></br>
         <div className="component">
           <Text variant="bold">Text</Text>
           <TextInput
@@ -139,7 +165,7 @@ const App: React.FC = () => {
             placeholder="Enter text to display on path"
           />
         </div>
-        <br></br>
+        <br />
         <div className="component">
           <Text variant="bold">Font</Text>
           <Select
@@ -148,7 +174,7 @@ const App: React.FC = () => {
             onChange={handleFontFamilyChange}
           />
         </div>
-        <br></br>
+        <br />
 
         <div className="component">
           <Text variant="bold">Font Size</Text>
@@ -160,7 +186,7 @@ const App: React.FC = () => {
             onChange={handleFontSizeChange}
           />
         </div>
-        <br></br>
+        <br />
         <div className="component">
           <Text variant="bold">Letter Spacing</Text>
           <Slider
@@ -171,12 +197,17 @@ const App: React.FC = () => {
             onChange={handleLetterSpacingChange}
           />
         </div>
-        <br></br>
+        <br />
         <div className="component">
           <Text variant="bold">Text Color</Text>
           <ColorSelector color={fontColor} onChange={handleFontColorChange} />
         </div>
-        <br></br>
+        <br />
+        <div className="component">
+          <Text variant="regular">Draw your desired text path below.</Text>
+          <DrawingCanvas onShapeComplete={handleShapeComplete} />
+        </div>
+        <br />
         {shapePath.length > 0 && (
           <svg
             viewBox={viewBox}
@@ -188,11 +219,13 @@ const App: React.FC = () => {
             </defs>
             <g fill={fontColor}>
               <text
-                fontSize={fontSize}
+                fontSize={adjustedFontSize}
                 fontFamily={fontFamily}
                 letterSpacing={letterSpacing}
               >
-                <textPath href="#userPath">{text}</textPath>
+                <textPath href="#userPath" spacing="auto" startOffset="0%">
+                  {text}
+                </textPath>
               </text>
               <use x="0" y="0" href="#userPath" stroke="none" fill="none" />
             </g>
@@ -203,8 +236,9 @@ const App: React.FC = () => {
             Create Text Box
           </Button>
         </div>
-        <br></br>
+        <br />
       </div>
+      <canvas ref={textCanvasRef} style={{ display: "none" }} />
     </Box>
   );
 };
