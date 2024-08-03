@@ -13,7 +13,7 @@ interface DrawingCanvasProps {
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWidth = 300;
-  const canvasHeight = 300;
+  const canvasHeight = 200;
   const [controlPoints, setControlPoints] = useState<Point[]>([
     { x: canvasWidth / 6, y: canvasHeight / 2 },
     { x: (canvasWidth / 6) * 2, y: canvasHeight / 2 },
