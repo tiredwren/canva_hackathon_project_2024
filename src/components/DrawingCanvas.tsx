@@ -55,26 +55,37 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
 
   const drawCurve = (ctx: CanvasRenderingContext2D, points: Point[]) => {
     if (points.length < 2) return;
-
+  
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 1; i < points.length - 2; i++) {
-      const cp1x = (points[i].x + points[i + 1].x) / 2;
-      const cp1y = (points[i].y + points[i + 1].y) / 2;
-      ctx.quadraticCurveTo(points[i].x, points[i].y, cp1x, cp1y);
+  
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i === 0 ? i : i - 1];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2 === points.length ? i + 1 : i + 2];
+  
+      for (let t = 0; t <= 1; t += 0.02) {
+        const x = 0.5 * ((-p0.x + 3*p1.x - 3*p2.x + p3.x) * (t * t * t) + 
+                        (2*p0.x - 5*p1.x + 4*p2.x - p3.x) * (t * t) + 
+                        (-p0.x + p2.x) * t + 
+                        2*p1.x);
+  
+        const y = 0.5 * ((-p0.y + 3*p1.y - 3*p2.y + p3.y) * (t * t * t) + 
+                        (2*p0.y - 5*p1.y + 4*p2.y - p3.y) * (t * t) + 
+                        (-p0.y + p2.y) * t + 
+                        2*p1.y);
+  
+        ctx.lineTo(x, y);
+      }
     }
-
-    const cp1x = (points[points.length - 2].x + points[points.length - 1].x) / 2;
-    const cp1y = (points[points.length - 2].y + points[points.length - 1].y) / 2;
-    ctx.quadraticCurveTo(points[points.length - 2].x, points[points.length - 2].y, cp1x, cp1y);
-    ctx.quadraticCurveTo(cp1x, cp1y, points[points.length - 1].x, points[points.length - 1].y);
-
-    ctx.strokeStyle = "black";
+  
+    ctx.strokeStyle = "dodgerblue";
+    ctx.fillStyle = "white";
     ctx.lineWidth = 2;
     ctx.stroke();
   };
-
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -88,9 +99,9 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
     controlPoints.forEach((point) => {
       ctx.beginPath();
       ctx.arc(point.x, point.y, 5, 0, Math.PI * 2, true);
-      ctx.fillStyle = "red";
       ctx.fill();
-      ctx.strokeStyle = "red";
+      ctx.fillStyle = "white";
+      ctx.strokeStyle = "dodgerblue";
       ctx.stroke();
     });
   }, [controlPoints]);

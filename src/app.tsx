@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import * as React from "react";
 import DrawingCanvas from "./components/DrawingCanvas";
 import {
   Button,
   Text,
   TextInput,
-  Select,
   ColorSelector,
   Slider,
   Box,
   tokens,
+  ArrowRightIcon,
 } from "@canva/app-ui-kit";
 import "styles/components.css";
+import { requestFontSelection, Font } from "@canva/asset";
 
 interface Point {
   x: number;
@@ -22,13 +24,24 @@ const App: React.FC = () => {
   const [text, setText] = useState<string>("");
   const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [fontSize, setFontSize] = useState<number>(20);
-  const [fontColor, setFontColor] = useState<string>("#000000");
-  const [fontFamily, setFontFamily] = useState<string>("Arial");
-  const [textMode, setTextMode] = useState<string>("follow");
+  const [fontColor, setFontColor] = useState<string>(tokens.colorSecondaryFore);
+  const [selectedFont, setSelectedFont] = React.useState<Font | undefined>();
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const clipPathRef = useRef<SVGPathElement>(null);
+
+  async function selectFont() {
+    const fontResponse = await requestFontSelection({
+      selectedFontRef: selectedFont?.ref,
+    });
+
+    if (fontResponse.type !== "COMPLETED") {
+      return;
+    }
+
+    // Update the selected font
+    setSelectedFont(fontResponse.font);
+  }
 
   const handleShapeComplete = (path: Point[]) => {
     setShapePath(path);
@@ -36,10 +49,6 @@ const App: React.FC = () => {
 
   const handleTextChange = (value: string) => {
     setText(value);
-  };
-
-  const handleFontFamilyChange = (value: string) => {
-    setFontFamily(value);
   };
 
   const handleFontSizeChange = (value: number) => {
@@ -54,8 +63,12 @@ const App: React.FC = () => {
     setLetterSpacing(value);
   };
 
+  function createTextBox() {
+    // Implement the text box creation logic
+  }
+
   const calculateBoundingBox = (points: Point[]) => {
-    if (points.length === 0) return { minX: 0, minY: 0, maxX: 300, maxY: 300 };
+    if (points.length === 0) return { minX: 0, minY: 0, maxX: 300, maxY: 200 };
 
     let minX = points[0].x;
     let minY = points[0].y;
@@ -87,10 +100,10 @@ const App: React.FC = () => {
 
     let d = `M ${shapePath[0].x},${shapePath[0].y}`;
     for (let i = 0; i < shapePath.length - 1; i++) {
-      const p0 = shapePath[i > 0 ? i - 1 : i]; // previous point
-      const p1 = shapePath[i]; // current point
-      const p2 = shapePath[i + 1]; // next point
-      const p3 = shapePath[i + 2 < shapePath.length ? i + 2 : i + 1]; // two points after current
+      const p0 = shapePath[i > 0 ? i - 1 : i];
+      const p1 = shapePath[i];
+      const p2 = shapePath[i + 1];
+      const p3 = shapePath[i + 2 < shapePath.length ? i + 2 : i + 1];
 
       const cp1x = p1.x + (p2.x - p0.x) / 3;
       const cp1y = p1.y + (p2.y - p0.y) / 3;
@@ -107,35 +120,14 @@ const App: React.FC = () => {
 
     const pathLength = path.getTotalLength();
     let currentFontSize = fontSize;
-    let textWidth = measureTextWidth(text, currentFontSize, fontFamily);
+    let textWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
 
     while (textWidth > pathLength && currentFontSize > 1) {
       currentFontSize -= 1;
-      textWidth = measureTextWidth(text, currentFontSize, fontFamily);
+      textWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
     }
 
     setFontSize(currentFontSize);
-  };
-
-  const wrapTextToFitShape = (text: string, fontSize: number, maxWidth: number) => {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (let word of words) {
-      const testLine = currentLine + word + ' ';
-      const testWidth = measureTextWidth(testLine, fontSize, fontFamily);
-      if (testWidth > maxWidth && currentLine !== '') {
-        lines.push(currentLine.trim());
-        currentLine = word + ' ';
-      } else {
-        currentLine = testLine;
-      }
-    }
-
-    if (currentLine) lines.push(currentLine.trim());
-
-    return lines;
   };
 
   useEffect(() => {
@@ -143,7 +135,7 @@ const App: React.FC = () => {
     const width = maxX - minX;
     const height = maxY - minY;
     const viewBoxWidth = 300;
-    const viewBoxHeight = 300;
+    const viewBoxHeight = 200;
 
     if (width > viewBoxWidth || height > viewBoxHeight) {
       const scaleFactor = Math.min(viewBoxWidth / width, viewBoxHeight / height);
@@ -151,76 +143,40 @@ const App: React.FC = () => {
     }
 
     fitTextToPath();
-  }, [shapePath, text, fontFamily, letterSpacing]);
-
-  const fontOptions = [
-    { label: "Arial", value: "Arial" },
-    { label: "Courier New", value: "Courier New" },
-    { label: "Times New Roman", value: "Times New Roman" },
-    // Add more fonts as needed
-  ];
+  }, [shapePath, text, letterSpacing, selectedFont, fontSize]);
 
   return (
-    <Box width="full" paddingEnd="2u">
+    <Box width="full" padding="2u">
       <div className="container">
         <div style={{ border: "1px solid", borderRadius: "3px", borderColor: tokens.colorBorder, padding: "10px", marginBottom: "20px" }}>
-          {shapePath.length > 0 && (
-            <svg
-              viewBox="0 0 300 300" // Set the viewBox height to 300
+          <svg
+              viewBox="0 0 300 200"
               version="1.1"
               xmlns="http://www.w3.org/2000/svg"
-              style={{ display: "block", width: "100%", height: "300px" }} // Set height to 300px
+              style={{ display: "block", width: "100%", height: "200" }}
             >
-              {textMode === "follow" && (
-                <>
-                  <defs>
-                    <path ref={pathRef} id="userPath" d={generatePathD()} />
-                  </defs>
-                  <text
-                    fontSize={fontSize}
-                    fontFamily={fontFamily}
-                    fill={fontColor}
-                    x="10" // Ensure text starts closer to the left edge
-                    y="20" // Ensure text starts closer to the top edge
-                    letterSpacing={letterSpacing}
-                  >
-                    <textPath spacing='auto' href="#userPath">
-                      {text}
-                    </textPath>
-                  </text>
-                </>
-              )}
-              {textMode === "fill" && (
-                <>
-                  <defs>
-                    <clipPath id="clip-shape">
-                      <path ref={clipPathRef} d={generatePathD()} />
-                    </clipPath>
-                  </defs>
-                  <g clipPath="url(#clip-shape)" fill={fontColor}>
-                    {wrapTextToFitShape(text, fontSize, 300).map((line, row) => (
-                      <text
-                        key={row}
-                        fontSize={fontSize}
-                        fontFamily={fontFamily}
-                        letterSpacing={letterSpacing}
-                        x="0" // Align text to the left
-                        y={(row * (fontSize + letterSpacing)) + fontSize} // Adjust vertical position
-                      >
-                        {line}
-                      </text>
-                    ))}
-                  </g>
-                </>
-              )}
+              <defs>
+                <path ref={pathRef} id="userPath" d={generatePathD()} />
+              </defs>
+              <text
+                fontFamily={selectedFont?.name || "Verdana"}
+                fontSize={fontSize}
+                fill={fontColor}
+                x="10"
+                y="20"
+                letterSpacing={letterSpacing}
+              >
+                <textPath spacing="auto" href="#userPath">
+                  {text}
+                </textPath>
+              </text>
             </svg>
-          )}
+
         </div>
         <div className="component">
           <Text variant="bold">Text</Text>
           <TextInput
             value={text}
-            defaultValue="hello world"
             onChange={handleTextChange}
             placeholder="Enter text"
           />
@@ -228,11 +184,16 @@ const App: React.FC = () => {
         <br />
         <div className="component">
           <Text variant="bold">Font</Text>
-          <Select
+          <Button
+            variant="secondary"
             stretch
-            options={fontOptions}
-            onChange={handleFontFamilyChange}
-          />
+            alignment="start"
+            onClick={selectFont}
+            icon={ArrowRightIcon}
+            iconPosition="end"
+          >
+            {selectedFont?.name || "Verdana"}
+          </Button>
         </div>
         <br />
         <div className="component">
@@ -263,24 +224,12 @@ const App: React.FC = () => {
         </div>
         <br />
         <div className="component">
-          <Text variant="bold">Text Mode</Text>
-          <Select
-            stretch
-            options={[
-              { label: "Follow Path", value: "follow" },
-              { label: "Fill Shape", value: "fill" },
-            ]}
-            onChange={(value) => setTextMode(value)}
-          />
-        </div>
-        <br />
-        <div className="component">
-          <Text variant="regular">Draw your desired text path below.</Text>
+          <Text variant="regular">Construct your desired text path below.</Text>
           <DrawingCanvas onShapeComplete={handleShapeComplete} />
         </div>
         <br />
         <div className="component">
-          <Button stretch alignment="center" variant="primary">
+          <Button stretch alignment="center" variant="primary" onClick={createTextBox}>
             Create Text Box
           </Button>
         </div>
