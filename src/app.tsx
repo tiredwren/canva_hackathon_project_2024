@@ -296,7 +296,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
   // serialize the canvas to an image
   const imageData = canvas.toDataURL({
     format: 'png',
-    multiplier: 2,
+    multiplier: 3,
   });
   return imageData;
 }
