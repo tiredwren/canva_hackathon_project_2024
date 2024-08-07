@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [fontName, setFontName] = useState<string>("")
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
 
   async function selectFont() {
@@ -140,12 +141,15 @@ const App: React.FC = () => {
     if (!path) return;
 
     const pathLength = path.getTotalLength();
+    console.log(pathLength)
     let currentFontSize = fontSize;
     let textWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
+    let measuredTextWidth = textWidth*2 - 20
+    console.log(measuredTextWidth)
 
-    while (textWidth > pathLength && currentFontSize > 1) {
+    while (measuredTextWidth > pathLength && currentFontSize > 1) {
       currentFontSize -= 1;
-      textWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
+      measuredTextWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
     }
 
     setFontSize(currentFontSize);
