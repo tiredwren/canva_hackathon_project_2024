@@ -220,57 +220,6 @@ function pointsToCatmullRomPath(points) {
   return pathData;
 }
 
-
-// function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
-//   // Ensure the shapePath is a string
-//   const svgPathData = JSON.parse(shapePath);
-
-//   // Convert the JSON path data to SVG path string
-//   const pathData = pointsToPath(svgPathData);
-
-//   // Create a canvas using fabric.js
-//   const canvas = new fabric.Canvas('canvas', {
-//     width: 300,
-//     height: 200
-//   });
-
-//   // Create the path using fabric.Path
-//   const path = new fabric.Path(pathData, {
-//     fill: '',
-//     selectable: false
-//   });
-
-//   // Add the path to the canvas
-//   canvas.add(path);
-
-//   // Calculate the total length of the path using fabric.js utility
-//   const pathLength = fabric.util.getPathLength(path.path);
-
-//   // Adjust font size based on the path length and text length
-//   const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
-
-//   // Create the text object to follow the path
-//   const textOnPath = new fabric.Text(text, {
-//     fontFamily: fontName || "Verdana",
-//     fontSize: adjustedFontSize,
-//     fill: fontColor || "black",
-//     left: path.left,
-//     top: path.top,
-//     letterSpacing: letterSpacing || 0,
-//     originX: 'center',
-//     originY: 'center',
-//     path: path,
-//     pathStartOffset: 0, // Adjust this to move text along the path
-//   });
-
-//   // Add the text to the canvas
-//   canvas.add(textOnPath);
-
-//   // Serialize the canvas to an image
-//   const imageData = canvas.toDataURL();
-//   return imageData;
-// }
-
 function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
   // ensure the shapePath is a string and convert it to points
   const pathData = JSON.parse(JSON.parse(shapePath));
@@ -296,7 +245,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     top: canvas.height / 2 - path.height / 2,
   });
 
-  // Add the path to the canvas
+  // add path to canvas
   canvas.add(path);
 
   // Calculate the total length of the path using fabric.js utility
@@ -451,7 +400,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
         <br />
         <div className="component">
           <Button stretch alignment="center" variant="primary" onClick={createTextBox}>
-            Create Text Box
+            Create text box
           </Button>
         </div>
         <br />
