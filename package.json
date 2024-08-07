@@ -31,8 +31,10 @@
     "@canva/preview": "./sdk/preview",
     "@canva/user": "^1.0.0",
     "bezier-js": "^6.1.4",
+    "fabric": "^6.1.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "two.js": "^0.8.14"
   },
   "devDependencies": {
     "@ngrok/ngrok": "^1.1.0",

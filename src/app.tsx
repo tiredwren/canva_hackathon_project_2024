@@ -13,6 +13,8 @@ import {
 } from "@canva/app-ui-kit";
 import "styles/components.css";
 import { requestFontSelection, Font } from "@canva/asset";
+import { initAppElement } from "@canva/design";
+import * as fabric from "fabric";
 
 interface Point {
   x: number;
@@ -20,12 +22,22 @@ interface Point {
 }
 
 const App: React.FC = () => {
+  type AppElementData = {
+    shapePath: string;
+    text: string;
+    letterSpacing: number;
+    fontSize: number;
+    fontName: string;
+    fontColor: string;
+  }
+
   const [shapePath, setShapePath] = useState<Point[]>([]);
   const [text, setText] = useState<string>("");
-  const [letterSpacing, setLetterSpacing] = useState<number>(0);
+  const [letterSpacing, setLetterSpacing] = useState<number>(5);
   const [fontSize, setFontSize] = useState<number>(20);
-  const [fontColor, setFontColor] = useState<string>(tokens.colorSecondaryFore);
+  const [fontColor, setFontColor] = useState<string>("#FF877D");
   const [selectedFont, setSelectedFont] = React.useState<Font | undefined>();
+  const [fontName, setFontName] = useState<string>("")
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
@@ -39,8 +51,9 @@ const App: React.FC = () => {
       return;
     }
 
-    // Update the selected font
+    // update selected font
     setSelectedFont(fontResponse.font);
+    setFontName(selectedFont?.name.toString() || "Verdana")
   }
 
   const handleShapeComplete = (path: Point[]) => {
@@ -64,7 +77,14 @@ const App: React.FC = () => {
   };
 
   function createTextBox() {
-    // Implement the text box creation logic
+    appElementClient.addOrUpdateElement({
+      shapePath: JSON.stringify(shapePath),
+      text: text,
+      letterSpacing: letterSpacing,
+      fontSize: fontSize,
+      fontName: selectedFont?.name || "Verdana",
+      fontColor: fontColor
+    });
   }
 
   const calculateBoundingBox = (points: Point[]) => {
@@ -145,6 +165,207 @@ const App: React.FC = () => {
     fitTextToPath();
   }, [shapePath, text, letterSpacing, selectedFont, fontSize]);
 
+
+//   function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string): string {
+//     const canvas = document.createElement("canvas");
+
+//     canvas.width = 300;
+//     canvas.height = 200;
+
+//     const context = canvas.getContext("2d");
+
+//     if (!context) {
+//         throw new Error("Can't get CanvasRenderingContext2D");
+//     }
+
+//     // convert shapePath string to an array of points
+//     const arrayPath = JSON.parse(JSON.parse(shapePath));
+
+//     context.font = `${fontSize}px ${fontName}`;
+//     console.log(`params: ${fontName}, ${fontSize}, ${JSON.stringify(letterSpacing)}`)
+//     context.letterSpacing = `${JSON.stringify(letterSpacing)}px`;
+//     context.fillStyle = fontColor;
+//     context.fillText(`${text}`,arrayPath[0].x, arrayPath[0].y);
+    
+//     return canvas.toDataURL();
+// }
+
+
+function pointsToCatmullRomPath(points) {
+  if (points.length < 2) return '';
+
+  let pathData = `M ${points[0].x},${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? i : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 === points.length ? i + 1 : i + 2];
+
+    for (let t = 0; t <= 1; t += 0.02) {
+      const x = 0.5 * ((-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * (t * t * t) +
+                      (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * (t * t) +
+                      (-p0.x + p2.x) * t +
+                      2 * p1.x);
+
+      const y = 0.5 * ((-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * (t * t * t) +
+                      (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * (t * t) +
+                      (-p0.y + p2.y) * t +
+                      2 * p1.y);
+
+      pathData += ` L ${x},${y}`;
+    }
+  }
+
+  return pathData;
+}
+
+
+// function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
+//   // Ensure the shapePath is a string
+//   const svgPathData = JSON.parse(shapePath);
+
+//   // Convert the JSON path data to SVG path string
+//   const pathData = pointsToPath(svgPathData);
+
+//   // Create a canvas using fabric.js
+//   const canvas = new fabric.Canvas('canvas', {
+//     width: 300,
+//     height: 200
+//   });
+
+//   // Create the path using fabric.Path
+//   const path = new fabric.Path(pathData, {
+//     fill: '',
+//     selectable: false
+//   });
+
+//   // Add the path to the canvas
+//   canvas.add(path);
+
+//   // Calculate the total length of the path using fabric.js utility
+//   const pathLength = fabric.util.getPathLength(path.path);
+
+//   // Adjust font size based on the path length and text length
+//   const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
+
+//   // Create the text object to follow the path
+//   const textOnPath = new fabric.Text(text, {
+//     fontFamily: fontName || "Verdana",
+//     fontSize: adjustedFontSize,
+//     fill: fontColor || "black",
+//     left: path.left,
+//     top: path.top,
+//     letterSpacing: letterSpacing || 0,
+//     originX: 'center',
+//     originY: 'center',
+//     path: path,
+//     pathStartOffset: 0, // Adjust this to move text along the path
+//   });
+
+//   // Add the text to the canvas
+//   canvas.add(textOnPath);
+
+//   // Serialize the canvas to an image
+//   const imageData = canvas.toDataURL();
+//   return imageData;
+// }
+
+function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
+  // ensure the shapePath is a string and convert it to points
+  const pathData = JSON.parse(JSON.parse(shapePath));
+  const svgPathData = pointsToCatmullRomPath(pathData);
+
+  console.log(svgPathData);
+  console.log(pathData);
+
+  // create a canvas using fabric.js
+  const canvas = new fabric.Canvas('canvas', {
+    width: 300,
+    height: 200
+  });
+
+  // create the path using fabric.Path
+  const path = new fabric.Path(svgPathData, {
+    fill: '',
+    selectable: false
+  });
+
+  path.set({
+    left: canvas.width / 2 - path.width / 2,
+    top: canvas.height / 2 - path.height / 2,
+  });
+
+  // Add the path to the canvas
+  canvas.add(path);
+
+  // Calculate the total length of the path using fabric.js utility
+  const pathInfo = fabric.util.getPathSegmentsInfo(path.path);
+  const pathLength = pathInfo[pathInfo.length - 1].length - 10;
+
+  // Adjust font size based on the path length and text length
+  // const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
+
+  // Create a dummy text object to measure character widths
+  const dummyText = new fabric.FabricText('', {
+    fontFamily: fontName || "Verdana",
+    fontSize: fontSize,
+  });
+
+  // Split the text into individual characters and position them along the path
+  let currentOffset = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    dummyText.set('text', char);
+    const charWidth = dummyText.width;
+
+    // Check if adding the next character would exceed the path length
+    if (currentOffset + charWidth > pathLength) {
+      break;
+    }
+
+    const charText = new fabric.Text(char, {
+      fontFamily: fontName || "Verdana",
+      fontSize: fontSize,
+      fill: fontColor || "black",
+      left: canvas.width / 2,
+      top: canvas.height / 2,
+      originX: 'center',
+      originY: 'center',
+      path: path,
+      pathStartOffset: currentOffset,
+    });
+
+    // add character to the canvas
+    canvas.add(charText);
+
+    // increment offset for next character, including letterSpacing
+    currentOffset += charWidth + letterSpacing;
+  }
+
+  // Serialize the canvas to an image
+  const imageData = canvas.toDataURL();
+  return imageData;
+}
+
+
+
+  const appElementClient = initAppElement<AppElementData>({
+    render: (data) => {
+      const dataUrl = pathToImage(JSON.stringify(data.shapePath), data.text, data.letterSpacing, data.fontSize, data.fontName, data.fontColor);
+      return [
+        {
+          type: "IMAGE",
+          dataUrl,
+          width: 900,
+          height: 600,
+          top: 0,
+          left: 0,
+        },
+      ];
+    },
+  });
+
   return (
     <Box width="full" padding="2u">
       <div className="container">
@@ -197,7 +418,7 @@ const App: React.FC = () => {
         </div>
         <br />
         <div className="component">
-          <Text variant="bold">Font Size</Text>
+          <Text variant="bold">Font size</Text>
           <Slider
             min={10}
             max={50}
@@ -208,7 +429,7 @@ const App: React.FC = () => {
         </div>
         <br />
         <div className="component">
-          <Text variant="bold">Letter Spacing</Text>
+          <Text variant="bold">Letter spacing</Text>
           <Slider
             min={0}
             max={20}
@@ -219,7 +440,7 @@ const App: React.FC = () => {
         </div>
         <br />
         <div className="component">
-          <Text variant="bold">Text Color</Text>
+          <Text variant="bold">Text color</Text>
           <ColorSelector color={fontColor} onChange={handleFontColorChange} />
         </div>
         <br />

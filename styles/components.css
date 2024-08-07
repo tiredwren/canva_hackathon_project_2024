@@ -10,6 +10,11 @@
   scrollbar-color: var(--ui-kit-color-typography-quaternary) transparent;
 }
 
+css
+     :root {
+       --ui-kit-color-secondary-fore: #666666; /* Example value */
+     }
+
 .scrollContainer::-webkit-scrollbar {
   position: absolute;
   width: var(--ui-kit-base-unit);
