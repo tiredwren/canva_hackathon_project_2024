@@ -15,6 +15,7 @@ import "styles/components.css";
 import { requestFontSelection, Font } from "@canva/asset";
 import { initAppElement } from "@canva/design";
 import * as fabric from "fabric";
+import { format } from "path";
 
 interface Point {
   x: number;
@@ -248,35 +249,35 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
   // add path to canvas
   canvas.add(path);
 
-  // Calculate the total length of the path using fabric.js utility
+  // calculate the total length of the path using fabric.js utility
   const pathInfo = fabric.util.getPathSegmentsInfo(path.path);
   const pathLength = pathInfo[pathInfo.length - 1].length - 10;
 
-  // Adjust font size based on the path length and text length
-  // const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
+  // adjust font size based on the path length and text length
+  const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
 
-  // Create a dummy text object to measure character widths
+  // create a dummy text object to measure character widths
   const dummyText = new fabric.FabricText('', {
     fontFamily: fontName || "Verdana",
-    fontSize: fontSize,
+    fontSize: adjustedFontSize,
   });
 
-  // Split the text into individual characters and position them along the path
+  // split the text into individual characters and position them along the path
   let currentOffset = 0;
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     dummyText.set('text', char);
     const charWidth = dummyText.width;
 
-    // Check if adding the next character would exceed the path length
+    // check if adding the next character would exceed the path length
     if (currentOffset + charWidth > pathLength) {
       break;
     }
 
-    const charText = new fabric.Text(char, {
+    const charText = new fabric.FabricText(char, {
       fontFamily: fontName || "Verdana",
       fontSize: fontSize,
-      fill: fontColor || "black",
+      fill: fontColor,
       left: canvas.width / 2,
       top: canvas.height / 2,
       originX: 'center',
@@ -292,12 +293,13 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     currentOffset += charWidth + letterSpacing;
   }
 
-  // Serialize the canvas to an image
-  const imageData = canvas.toDataURL();
+  // serialize the canvas to an image
+  const imageData = canvas.toDataURL({
+    format: 'png',
+    multiplier: 2,
+  });
   return imageData;
 }
-
-
 
   const appElementClient = initAppElement<AppElementData>({
     render: (data) => {
