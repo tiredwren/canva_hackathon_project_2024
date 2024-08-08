@@ -15,22 +15,61 @@ import "styles/components.css";
 import { requestFontSelection, Font } from "@canva/asset";
 import { initAppElement } from "@canva/design";
 import * as fabric from "fabric";
-import { format } from "path";
 
 interface Point {
   x: number;
   y: number;
 }
 
-const App: React.FC = () => {
-  type AppElementData = {
-    shapePath: string;
-    text: string;
-    letterSpacing: number;
-    fontSize: number;
-    fontName: string;
-    fontColor: string;
-  }
+
+export default function App() {
+  
+type AppElementData = {
+  shapePath: string;
+  text: string;
+  letterSpacing: number;
+  fontSize: number;
+  fontName: string;
+  fontColor: string;
+}
+
+  const [state, setState] = React.useState ({
+    shapePathX: `[{"x":50,"y":100},{"x":100,"y":100},{"x":150,"y":100},{"x":200,"y":100},{"x":250,"y":100}]`,
+    text: "hello world",
+    letterSpacing: 5,
+    fontSize: 20,
+    fontColor: "#FF877D",
+    selectedFont: "Verdana",
+    isSelected: false
+  });
+
+  React.useEffect(() => {
+    appElementClient.registerOnElementChange((element) => {
+      if (element) {
+        setState({
+          shapePathX: element.data.shapePath,
+          text: element.data.text,
+          letterSpacing: element.data.letterSpacing,
+          fontSize: element.data.fontSize,
+          fontColor: element.data.fontColor,
+          selectedFont: element.data.fontName,
+          isSelected: true,
+        });
+        console.log(state)
+      } else {
+        setState({
+          shapePathX: `[{"x":50,"y":100},{"x":100,"y":100},{"x":150,"y":100},{"x":200,"y":100},{"x":250,"y":100}]`,
+          text: "",
+          letterSpacing: 5,
+          fontSize: 20,
+          fontColor: "FF877D",
+          selectedFont: "Verdana",
+          isSelected: false
+        });
+        console.log(state)
+      }
+    });
+  }, []);
 
   const [shapePath, setShapePath] = useState<Point[]>([]);
   const [text, setText] = useState<string>("");
@@ -41,7 +80,6 @@ const App: React.FC = () => {
   const [fontName, setFontName] = useState<string>("")
 
   const textCanvasRef = useRef<HTMLCanvasElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
 
   async function selectFont() {
@@ -57,37 +95,70 @@ const App: React.FC = () => {
     setSelectedFont(fontResponse.font);
     setFontName(selectedFont?.name.toString() || "Verdana")
   }
-
+  
   const handleShapeComplete = (path: Point[]) => {
     setShapePath(path);
+    setState((prevState) => ({
+      ...prevState,
+      shapePathX: JSON.stringify(path),
+    }));
   };
 
-  const handleTextChange = (value: string) => {
-    setText(value);
-  };
+const handleTextChange = (value: string) => {
+  setText(value);
+  setState((prevState) => ({
+    ...prevState,
+    text: value,
+  }));
+  console.log(value)
+};
 
-  const handleFontSizeChange = (value: number) => {
-    setFontSize(value);
-  };
+const handleFontSizeChange = (value: number) => {
+  setFontSize(value);
+  setState((prevState) => ({
+    ...prevState,
+    fontSize: value,
+  }));
+  console.log(fontSize)
+};
 
-  const handleFontColorChange = (value: string) => {
-    setFontColor(value);
-  };
+const handleFontColorChange = (value: string) => {
+  setFontColor(value);
+  setState((prevState) => ({
+    ...prevState,
+    fontColor: value,
+  }));
+  console.log(fontColor)
+};
 
-  const handleLetterSpacingChange = (value: number) => {
-    setLetterSpacing(value);
-  };
+const handleLetterSpacingChange = (value: number) => {
+  setLetterSpacing(value);
+  setState((prevState) => ({
+    ...prevState,
+    letterSpacing: value,
+  }));
+  console.log(letterSpacing)
+};
 
   function createTextBox() {
     appElementClient.addOrUpdateElement({
-      shapePath: JSON.stringify(shapePath),
-      text: text,
-      letterSpacing: letterSpacing,
-      fontSize: fontSize,
-      fontName: selectedFont?.name || "Verdana",
-      fontColor: fontColor
+      shapePath: state.shapePathX,
+      text: state.text,
+      letterSpacing: state.letterSpacing,
+      fontSize: state.fontSize,
+      fontName: state.selectedFont,
+      fontColor: state.fontColor
     });
   }
+
+    function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+      setState((prevState) => {
+        return {
+          ...prevState,
+          [event.target.name]: event.target.value,
+        };
+      });
+    }
 
   const calculateBoundingBox = (points: Point[]) => {
     if (points.length === 0) return { minX: 0, minY: 0, maxX: 300, maxY: 200 };
@@ -141,11 +212,9 @@ const App: React.FC = () => {
     if (!path) return;
 
     const pathLength = path.getTotalLength();
-    console.log(pathLength)
     let currentFontSize = fontSize;
     let textWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
     let measuredTextWidth = textWidth*2 - 20
-    console.log(measuredTextWidth)
 
     while (measuredTextWidth > pathLength && currentFontSize > 1) {
       currentFontSize -= 1;
@@ -222,16 +291,17 @@ function pointsToCatmullRomPath(points) {
     }
   }
 
+  console.log(pathData);
   return pathData;
 }
 
 function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
   // ensure the shapePath is a string and convert it to points
-  const pathData = JSON.parse(JSON.parse(shapePath));
-  const svgPathData = pointsToCatmullRomPath(pathData);
+  const pathData = JSON.parse(JSON.parse((shapePath)));
 
-  console.log(svgPathData);
-  console.log(pathData);
+  console.log(JSON.parse(JSON.parse((shapePath))))
+  
+  const svgPathData = pointsToCatmullRomPath(pathData);
 
   // create a canvas using fabric.js
   const canvas = new fabric.Canvas('canvas', {
@@ -335,15 +405,15 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
                 <path ref={pathRef} id="userPath" d={generatePathD()} />
               </defs>
               <text
-                fontFamily={selectedFont?.name || "Verdana"}
-                fontSize={fontSize}
-                fill={fontColor}
+                fontFamily={state.selectedFont}
+                fontSize={state.fontSize}
+                fill={state.fontColor}
                 x="10"
                 y="20"
-                letterSpacing={letterSpacing}
+                letterSpacing={state.letterSpacing}
               >
                 <textPath spacing="auto" href="#userPath">
-                  {text}
+                  {state.text}
                 </textPath>
               </text>
             </svg>
@@ -352,7 +422,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
         <div className="component">
           <Text variant="bold">Text</Text>
           <TextInput
-            value={text}
+            value={state.text}
             onChange={handleTextChange}
             placeholder="Enter text"
           />
@@ -378,7 +448,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
             min={10}
             max={50}
             step={1}
-            value={fontSize}
+            value={state.fontSize}
             onChange={handleFontSizeChange}
           />
         </div>
@@ -389,14 +459,14 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
             min={0}
             max={20}
             step={1}
-            value={letterSpacing}
+            value={state.letterSpacing}
             onChange={handleLetterSpacingChange}
           />
         </div>
         <br />
         <div className="component">
           <Text variant="bold">Text color</Text>
-          <ColorSelector color={fontColor} onChange={handleFontColorChange} />
+          <ColorSelector color={state.fontColor} onChange={handleFontColorChange} />
         </div>
         <br />
         <div className="component">
@@ -405,8 +475,8 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
         </div>
         <br />
         <div className="component">
-          <Button stretch alignment="center" variant="primary" onClick={createTextBox}>
-            Create text box
+          <Button stretch type="submit" alignment="center" variant="primary" onClick={createTextBox}>
+            {state.isSelected ?  "Update text path" : "Create text path"}
           </Button>
         </div>
         <br />
@@ -415,5 +485,3 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     </Box>
   );
 };
-
-export default App;
