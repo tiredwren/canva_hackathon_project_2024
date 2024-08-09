@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import * as React from "react";
-// import DrawingCanvas from "./components/DrawingCanvas";
 import {
   Button,
   Text,
@@ -379,7 +378,9 @@ const handleLetterSpacingChange = (value: number) => {
       measuredTextWidth = measureTextWidth(text, currentFontSize, selectedFont?.name || "Verdana");
     }
 
-    setFontSize(currentFontSize);
+    handleFontSizeChange(currentFontSize);
+    state.fontSize = (currentFontSize);
+    console.log(currentFontSize)
   };
 
   useEffect(() => {
@@ -389,10 +390,10 @@ const handleLetterSpacingChange = (value: number) => {
     const viewBoxWidth = 300;
     const viewBoxHeight = 200;
 
-    if (width > viewBoxWidth || height > viewBoxHeight) {
-      const scaleFactor = Math.min(viewBoxWidth / width, viewBoxHeight / height);
-      setFontSize((prevFontSize) => prevFontSize * scaleFactor);
-    }
+    // if (width > viewBoxWidth || height > viewBoxHeight) {
+    //   const scaleFactor = Math.min(viewBoxWidth / width, viewBoxHeight / height);
+    //   setFontSize((prevFontSize) => prevFontSize * scaleFactor);
+    // }
 
     fitTextToPath();
   }, [shapePath, text, letterSpacing, selectedFont, fontSize]);
@@ -643,3 +644,4 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     </Box>
   );
 };
+
