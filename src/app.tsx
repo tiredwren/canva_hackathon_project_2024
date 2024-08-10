@@ -479,8 +479,7 @@ const fontOptions = [
   { label: "Courier", value: "Courier, monospace" },
   { label: "Consolas", value: "Consolas, monospace" },
   { label: "American Typewriter", value: "'American Typewriter', serif" },
-
-    // Add more fonts as needed
+    // add more fonts>
 ];
 
 
