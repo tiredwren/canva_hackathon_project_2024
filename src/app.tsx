@@ -59,7 +59,7 @@ const drawCurve = (ctx: CanvasRenderingContext2D, points: Point[]) => {
   ctx.stroke();
 };
 
-const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete, ctrlpts }) => {
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWidth = 300;
   const canvasHeight = 200;
@@ -81,8 +81,6 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete, ctrlpts 
     const y = event instanceof MouseEvent ? event.clientY - rect.top : event.touches[0].clientY - rect.top;
     return { x, y };
   };
-
-  ctrlpts=controlPoints;
 
   const handleMouseDown = (event: React.MouseEvent | React.TouchEvent, index: number) => {
     event.preventDefault();
@@ -144,8 +142,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete, ctrlpts 
 
   const resetCanvas = () => {
     setControlPoints(initialControlPoints);
+    setTimeout(() => {
+      onShapeComplete(initialControlPoints);
+    }, 0);
   };
-
+  
   return (
     <div>
       <canvas
@@ -182,7 +183,6 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onShapeComplete, ctrlpts 
   );
 };
 
-
 export default function App() {
   
 type AppElementData = {
@@ -196,11 +196,11 @@ type AppElementData = {
 
   const [state, setState] = React.useState ({
     shapePathX: `[{"x":50,"y":100},{"x":100,"y":100},{"x":150,"y":100},{"x":200,"y":100},{"x":250,"y":100}]`,
-    text: "hello world",
+    text: "",
     letterSpacing: 5,
     fontSize: 20,
     fontColor: "#FF877D",
-    selectedFont: "Verdana",
+    selectedFont: "",
     isSelected: false
   });
 
@@ -216,7 +216,7 @@ type AppElementData = {
           selectedFont: element.data.fontName,
           isSelected: true,
         });
-        console.log(state)
+
       } else {
         setState({
           shapePathX: `[{"x":50,"y":100},{"x":100,"y":100},{"x":150,"y":100},{"x":200,"y":100},{"x":250,"y":100}]`,
@@ -224,10 +224,9 @@ type AppElementData = {
           letterSpacing: 5,
           fontSize: 20,
           fontColor: "#FF877D",
-          selectedFont: "Verdana",
+          selectedFont: "",
           isSelected: false
         });
-        console.log(state)
       }
     });
   }, []);
@@ -268,7 +267,6 @@ const handleTextChange = (value: string) => {
     ...prevState,
     text: value,
   }));
-  console.log(value)
 };
 
 const handleFontSizeChange = (value: number) => {
@@ -277,7 +275,6 @@ const handleFontSizeChange = (value: number) => {
     ...prevState,
     fontSize: value,
   }));
-  console.log(fontSize)
 };
 
 const handleFontColorChange = (value: string) => {
@@ -286,7 +283,6 @@ const handleFontColorChange = (value: string) => {
     ...prevState,
     fontColor: value,
   }));
-  console.log(fontColor)
 };
 
 const handleLetterSpacingChange = (value: number) => {
@@ -295,7 +291,6 @@ const handleLetterSpacingChange = (value: number) => {
     ...prevState,
     letterSpacing: value,
   }));
-  console.log(letterSpacing)
 };
 
   function createTextBox() {
@@ -340,7 +335,6 @@ const handleLetterSpacingChange = (value: number) => {
     let most = 2;
     let least = 0
     const array = JSON.parse(points);
-    console.log(array)
     const p1 = array[0].x
     const p2 = array[1].x
     const p3 = array[2].x
@@ -350,14 +344,13 @@ const handleLetterSpacingChange = (value: number) => {
     least = Math.min(p1,p2,p3,p4,p5)
     most = Math.max(p1,p2,p3,p4,p5)
 
-    return (most-least);
+    return (most-least+state.fontSize*2);
   }
 
   const measureTextHeight = (points: string) => {
     let most = 2;
     let least = 0
     const array = JSON.parse(points);
-    console.log(array)
     const p1 = array[0].y
     const p2 = array[1].y
     const p3 = array[2].y
@@ -367,7 +360,7 @@ const handleLetterSpacingChange = (value: number) => {
     least = Math.min(p1,p2,p3,p4,p5)
     most = Math.max(p1,p2,p3,p4,p5)
 
-    return (most-least+state.fontSize);
+    return (most-least+state.fontSize*2);
   }
 
   const measureTextWidth = (text: string, fontSize: number, fontFamily: string, letterSpacing: number) => {
@@ -393,8 +386,7 @@ const handleLetterSpacingChange = (value: number) => {
         totalWidth += letterSpacing;
       }
     }
-  
-    console.log(`Total width with letter spacing: ${totalWidth}`);
+
     return totalWidth;
   };
   
@@ -427,25 +419,21 @@ const handleLetterSpacingChange = (value: number) => {
     if (!path) return;
 
     const pathLength = path.getTotalLength();
+
     let currentFontSize = fontSize;
     let textWidth = measureTextWidth(text, currentFontSize, fontName, letterSpacing);
-    let measuredTextWidth = textWidth*2 - 20
 
-    while (measuredTextWidth > pathLength && currentFontSize > 1) {
+    while (textWidth > pathLength && currentFontSize > 5) {
       currentFontSize -= 1;
-      measuredTextWidth = measureTextWidth(text, currentFontSize, fontName, letterSpacing);
+      textWidth = measureTextWidth(text, currentFontSize, fontName, letterSpacing);
     }
 
     handleFontSizeChange(currentFontSize);
-    state.fontSize = (currentFontSize);
-    console.log(currentFontSize)
   };
 
   useEffect(() => {
-    const { minX, minY, maxX, maxY } = calculateBoundingBox(shapePath);
-
     fitTextToPath();
-  }, [shapePath, text, letterSpacing, fontName, fontSize]);
+  }, [shapePath, text, fontSize, letterSpacing, fontName]);
 
 const fontOptions = [
   { label: "Arial", value: "Arial, sans-serif" },
@@ -510,15 +498,12 @@ function pointsToCatmullRomPath(points: string | any[]) {
     }
   }
 
-  console.log(pathData);
   return pathData;
 }
 
 function pathToImage(shapePath: string, text: string, letterSpacing: number, fontSize: number, fontName: string, fontColor: string) {
   // ensure the shapePath is a string and convert it to points
   const pathData = JSON.parse(JSON.parse((shapePath)));
-
-  console.log(JSON.parse(JSON.parse((shapePath))))
   
   const svgPathData = pointsToCatmullRomPath(pathData);
 
@@ -528,22 +513,18 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     height: measureTextHeight(state.shapePathX)
   });
 
-  console.log(canvas.height)
-
   // create the path using fabric.Path
   const path = new fabric.Path(svgPathData, {
     fill: '',
     selectable: false
   });
 
-  console.log(canvas.height / 2)
-
   // add path to canvas
   canvas.add(path);
 
   // calculate the total length of the path using fabric.js utility
   const pathInfo = fabric.util.getPathSegmentsInfo(path.path);
-  const pathLength = pathInfo[pathInfo.length - 1].length - 10;
+  const pathLength = pathInfo[pathInfo.length - 1].length + state.fontSize;
 
   // adjust font size based on the path length and text length
   const adjustedFontSize = fontSize || (2.5 * pathLength / text.length);
@@ -570,9 +551,9 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
       fontFamily: fontName,
       fontSize: fontSize,
       fill: fontColor,
-      left: 0,
+      left: state.fontSize,
       top: canvas.height,
-      originX: 'left',
+      // originX: 'left',
       originY: 'bottom',
       path: path,
       pathStartOffset: currentOffset,
@@ -585,7 +566,6 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
     currentOffset += charWidth + letterSpacing;
   }
 
-  console.log(canvas.height,canvas.width)
 
   // serialize the canvas to an image
   const imageData = canvas.toDataURL({
@@ -616,7 +596,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
       <div className="container">
       <Text>Note that the text will not fit itself to the path until a font is selected.</Text>
       <br></br>
-        <div style={{ border: "1px solid", borderRadius: "3px", borderColor: tokens.colorBorder, padding: "10px", marginBottom: "20px" }}>
+        <div style={{ border: "1px solid", borderRadius: "3px", borderColor: tokens.colorBorder, padding: "10px", marginBottom: "20px", fill: "white"}}>
           <svg
               viewBox="0 0 300 200"
               version="1.1"
@@ -630,8 +610,8 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
                 fontFamily={state.selectedFont}
                 fontSize={state.fontSize}
                 fill={state.fontColor}
-                x="10"
-                y="20"
+                x="0"
+                y="0"
                 letterSpacing={state.letterSpacing}
               >
                 <textPath spacing="auto" href="#userPath">
@@ -656,6 +636,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
           <Text variant="bold">Font</Text>
           <Select
             stretch
+            value={state.selectedFont}
             options={fontOptions}
             onChange={handleFontFamilyChange}
           />
@@ -663,8 +644,8 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
         <div className="component">
           <Text variant="bold">Font size</Text>
           <Slider
-            min={1}
-            max={50}
+            min={5}
+            max={200}
             step={1}
             value={state.fontSize}
             onChange={handleFontSizeChange}
@@ -675,7 +656,7 @@ function pathToImage(shapePath: string, text: string, letterSpacing: number, fon
           <Text variant="bold">Letter spacing</Text>
           <Slider
             min={0}
-            max={20}
+            max={100}
             step={1}
             value={state.letterSpacing}
             onChange={handleLetterSpacingChange}

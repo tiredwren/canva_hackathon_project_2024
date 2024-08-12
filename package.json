@@ -34,7 +34,8 @@
     "fabric": "^6.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "two.js": "^0.8.14"
+    "two.js": "^0.8.14",
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "@ngrok/ngrok": "^1.1.0",
